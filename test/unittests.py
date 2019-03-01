@@ -38,7 +38,7 @@ class DafafileTests(unittest.TestCase):
         path = os.path.dirname(__file__)
         SQM.read(os.path.join(path, "ref.dat"))
         SQM.compute()
-        SQM.reduce_dark(sunlow=-18, moonlow=-7)
+        SQM.reduce_dark()
         SQM.write(os.path.join(path, "sunmoon.dat"))
         self.assertTrue(filecmp.cmp(os.path.join(path, "sunmoon.dat"),
                                     os.path.join(path, "sunmoonref.dat")), 'Files differ')

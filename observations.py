@@ -117,9 +117,11 @@ class Datafile:
 
         return self.df
 
-    def reduce_dark(self, sunlow=-18, moonlow=-7):
+    def reduce_dark(self, sunlow=-18, moonlow=-10):
         """ Remove the rows from the df where the sun and
-        moon are below given altitudes"""
+            moon are below given altitudes
+            Defaults from : https://academic.oup.com/mnras/article/412/1/33/984247
+        """
         df = self.df
         self.sunmoon = df.loc[(df['sunalt'] < sunlow) & (df['moonalt'] < moonlow)]
         if self.sunmoon.empty:
