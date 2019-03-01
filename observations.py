@@ -1,8 +1,9 @@
-import pandas as pd
-import ephem
+import copy
 import datetime
 import math
-import copy
+
+import ephem
+import pandas as pd
 
 
 class Header:
@@ -67,7 +68,6 @@ class Datafile:
                     break
                 self.header.append(line)
 
-
         return self.df
 
     def _sunalt(self, x):
@@ -86,6 +86,17 @@ class Datafile:
         moon.compute(loc)
         return math.degrees(moon.alt)
 
+    def _nightssolarantitransit(self, x):
+        """ Compute the local solar antitransit time
+            - when the sun is at it's lowest, solar midnight
+
+            We set the UTCdate of the location back 12 hours and
+            calculate the next_antitransit(Sun) to get that nights time.
+            """
+        loc = self.location
+        loc.date = x['UTCDate'] - datetime.timedelta(hours=12)
+        return loc.next_antitransit(ephem.Sun()).datetime().strftime('%Y-%m-%d %H:%M:%S')
+
     def compute(self):
         """ Compute:
             - the altitude of the sun and moon and add these as columns.
@@ -99,6 +110,11 @@ class Datafile:
         # Write columns with the datetime string format the file needs to be in
         self.df['OrigUTCDate'] = self.df['UTCDate'].apply(lambda x: x.strftime('%Y-%m-%dT%H:%M:%S.000'))
         self.df['OrigLocalDate'] = self.df['LocalDate'].apply(lambda x: x.strftime('%Y-%m-%dT%H:%M:%S.000'))
+
+        # Calculate local solar midnight and make it a datetime object
+        self.df['NightsSolarAntiTransit'] = self.df.apply(self._nightssolarantitransit, 1)
+        self.df['NightsSolarAntiTransit'] = pd.to_datetime(self.df['NightsSolarAntiTransit'])
+
         return self.df
 
     def reduce_dark(self, sunlow=-18, moonlow=-7):
@@ -112,14 +128,15 @@ class Datafile:
             return self.sunmoon
 
     def reduce_midnight(self):
-        """ Select only rows that are between 2300 and 0100 LocalTime
+        """ Select only rows that are between one hour either side of 'antitransit' midnight
             AND where the Sun and Moon altitude criteria are met."""
 
         if self.sunmoon.empty:
             self.reduce_dark()
         df = self.sunmoon
-        self.midnight = df.loc[(df['LocalDate'].dt.time > datetime.time(hour=23)) |
-                               (df['LocalDate'].dt.time < datetime.time(hour=1))]
+
+        self.midnight = df.loc[((df['UTCDate'] - df['NightsSolarAntiTransit']) < datetime.timedelta(hours=1)) &
+                               ((df['NightsSolarAntiTransit'] - df['UTCDate']) < datetime.timedelta(hours=1))]
         return self.midnight
 
     def write(self, fname):
@@ -131,13 +148,16 @@ class Datafile:
         header = copy.deepcopy(self.header)
         if not self.midnight.empty:
             df = self.midnight.copy()
-            header.add_comment("Data where the sun and moon are low and between 2300 and 0100 LocalTime")
-            header.add_comment("5% Percentile = " + str(df.MSAS.quantile(q=.05)) + \
+            header.add_comment("Data where the sun and moon are low and 1 hour either side of solar antitransit.")
+            header.add_comment("5% Percentile = " + str(df.MSAS.quantile(q=.05)) +
                                "; 95% Percentile = " + str(df.MSAS.quantile(q=.95)))
+            header.add_comment("Local solarantitransit 'midnight' ranges from " +
+                               str(min(df['NightsSolarAntiTransit'].dt.time)) + " to " +
+                               str(max(df['NightsSolarAntiTransit'].dt.time)))
         elif not self.sunmoon.empty:
             df = self.sunmoon.copy()
             header.add_comment("Data where the sun and moon are low.")
-            header.add_comment("5% Percentile = " + str(df.MSAS.quantile(q=.05)) + \
+            header.add_comment("5% Percentile = " + str(df.MSAS.quantile(q=.05)) +
                                "; 95% Percentile = " + str(df.MSAS.quantile(q=.95)))
         else:
             df = self.df.copy()
@@ -170,5 +190,5 @@ class Datafile:
                   mode='a',
                   header=True,
                   index=False,
-                  sep=";",float_format='%.2f')
+                  sep=";", float_format='%.2f')
         file.close()

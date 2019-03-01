@@ -1,24 +1,26 @@
 import filecmp
-import unittest
-import observations as obs
 import os
+import unittest
+
+import observations as obs
 
 
 class HeaderTests(unittest.TestCase):
 
     def test_appendheader(self):
         header = obs.Header()
-        line="# Comment: \n"
+        line = "# Comment: \n"
         header.append(line)
-        self.assertEqual(header.getlines(),[line])
+        self.assertEqual(header.getlines(), [line])
 
     def test_add_comment(self):
         header = obs.Header()
-        line="# Comment: "
+        line = "# Comment: "
         header.append(line + "\n")
         comment = "LIGHTS!!!!"
         header.add_comment(comment)
-        self.assertEqual(header.getlines(),[line + comment + "\n"])
+        self.assertEqual(header.getlines(), [line + comment + "\n"])
+
 
 class DafafileTests(unittest.TestCase):
 
@@ -51,7 +53,6 @@ class DafafileTests(unittest.TestCase):
         self.assertTrue(filecmp.cmp(os.path.join(path, "midnight.dat"),
                                     os.path.join(path, "midnightref.dat")), 'Files differ')
 
-
     def test_debugcsv(self):
         SQM = obs.Datafile()
         path = os.path.dirname(__file__)
@@ -61,6 +62,7 @@ class DafafileTests(unittest.TestCase):
         SQM.debug_csv(os.path.join(path, "debugcsv.dat"))
         self.assertTrue(filecmp.cmp(os.path.join(path, "debugcsv.dat"),
                                     os.path.join(path, "debugcsvref.dat")), 'Files differ')
+
 
 if __name__ == '__main__':
     unittest.main()
