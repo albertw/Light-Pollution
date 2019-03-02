@@ -1,6 +1,7 @@
 import copy
 import datetime
 import math
+import tempfile
 
 import ephem
 import pandas as pd
@@ -141,7 +142,7 @@ class Datafile:
                                ((df['NightsSolarAntiTransit'] - df['UTCDate']) < datetime.timedelta(hours=1))]
         return self.midnight
 
-    def write(self, fname):
+    def write(self, fname=None):
         """ Write out the new observation file.
             If self.midnight we write it.
             else if self.sunmoon exists we write it
@@ -164,7 +165,10 @@ class Datafile:
         else:
             df = self.df.copy()
 
-        file = open(fname, "w", newline='\r\n')
+        if not fname:
+            file = tempfile.NamedTemporaryFile(mode="w+")
+        else:
+            file = open(fname, "w", newline='\r\n')
 
         for line in header.getlines():
             file.write(line)
@@ -177,6 +181,9 @@ class Datafile:
                                                                              index=False,
                                                                              sep=";",
                                                                              float_format='%.2f')
+        if not fname:
+            file.seek(0)
+            print(file.read())
         file.close()
 
     def debug_csv(self, fname):
