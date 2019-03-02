@@ -14,7 +14,7 @@ On windows I'd suggest using [anaconda](www.anaconda.com). On unix-likes, `pip i
 Copy the observations.py file and include it or run the sqm.py command
 
 ## Command line
-```python
+```
 $ sqm.py  -h
 usage: sqm.py [-h] -i INFILE (-d | -t) [-m MINMOON] [-s MINSUN] [-o OUTFILE]
 
