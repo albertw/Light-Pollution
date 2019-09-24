@@ -1,12 +1,21 @@
 #!/usr/bin/env python
+""""
+Given a csv file of locations of interest and a csv file of locations of lights,
+we compute the weighted melatonin supression effect of lights within a given radius,
+and return the list of those lights.
+"""
 import argparse
-import pandas as pd
+
 import numpy as np
-import pprint
+import pandas as pd
 
 pd.set_option('display.float_format', lambda x: '%.6f' % x)
 
+
 def lights(csv):
+    """ Read in a csv file of lights and return a dataframe.
+        Assumes csv file is in the format of the Cork County Council data
+    """
     df = pd.read_csv(csv, low_memory=False)
     df.rename(columns={'12) Easting_ITM': 'easting',
                        '13) Northing_ITM': 'northing',
@@ -19,6 +28,9 @@ def lights(csv):
 
 
 def msi_types():
+    """ Melatonin Suppression Index for light types used for weighting
+        c.f. https://www.ncbi.nlm.nih.gov/pmc/articles/PMC3702543/
+    """
     typedict = {'lamp_type': {0: 'SOX',
                               1: 'SON',
                               2: 'Fluorescent',
@@ -33,7 +45,6 @@ def msi_types():
                         2: 0.435,
                         3: 0.624,
                         4: 0.452,
-
                         5: 0.255,
                         6: 0.377,
                         7: 0.435,
@@ -51,6 +62,10 @@ def msi_types():
 
 
 def read_locations(csv):
+    """ Read the locations to study.
+        This assumes the data is in the format of the sample Cork locations
+        with eircode and IRENET95 easting and northing.
+    """
     _df = pd.read_csv(csv)
     _df.rename(columns={'Unnamed: 1': 'eircode',
                         'IRENET95-East': 'easting',
@@ -93,7 +108,6 @@ def nearby_lamps(dataframe, east, north, contribution=0, radius=150, quick=False
     return df.loc[df['contrib'] > contribution]
 
 
-
 def convert_to_latlon(row):
     """ Convert from easting and northing to lat/lon WSG84
     """
@@ -112,14 +126,14 @@ if __name__ == "__main__":
                         required=True,
                         help="Input location file. Assumed to be in the same structure as 'House_coords_BE'",
                         dest='locationfile')
-    #parser.add_argument('-m', '--mapfile', dest='mapfile', default='mapfile',
+    # parser.add_argument('-m', '--mapfile', dest='mapfile', default='mapfile',
     #                    help='Bese filename to write maps to. (Default: %(default)s).')
     parser.add_argument('-r', '--radius', dest='radius', default=150,
                         help='Radius from location to look for lights. (Default: %(default)s).')
 
     args = parser.parse_args()
 
-    #if args.mapfile:
+    # if args.mapfile:
     #    from pyproj import Transformer
     #    import mplleaflet
     #    transformer = Transformer.from_proj(2157, 4326)
