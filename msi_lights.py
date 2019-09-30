@@ -20,7 +20,12 @@ def lights(csv):
     df.rename(columns={'12) Easting_ITM': 'easting',
                        '13) Northing_ITM': 'northing',
                        '39) Lamp Type': 'lamp_type',
-                       '40) Wattage': 'wattage'},
+                       '40) Wattage': 'wattage',
+                       'Easting_ITM': 'easting',
+                       'Northing_ITM': 'northing',
+                       'Lamp Type': 'lamp_type',
+                       'Wattage': 'wattage'
+                       },
               inplace=True)
     lampdf = pd.merge(df, msi_types(), on=['lamp_type'], how='left')
     lampdf['Lamp_Lumens'] = lampdf['wattage'] * lampdf['lumens/W']
@@ -68,6 +73,7 @@ def read_locations(csv):
     """
     _df = pd.read_csv(csv)
     _df.rename(columns={'Unnamed: 1': 'eircode',
+                        'Eircode': 'eircode',
                         'IRENET95-East': 'easting',
                         'IRENET95-North': 'northing'},
                inplace=True)
