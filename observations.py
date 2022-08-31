@@ -52,19 +52,34 @@ class Datafile:
     def read(self, datafile):
         """ read in the datafile"""
         self.datafile = datafile
-        self.df = pd.read_csv(self.datafile, comment='#', sep=";",
+
+        try:
+            self.df = pd.read_csv(self.datafile, comment='#', sep=";",
                               names=["UTCDate", "LocalDate", "Temp", "Volts", "MSAS"],
                               header=None,
                               parse_dates=["UTCDate", "LocalDate"])
+        except TypeError as e:
+            self.df = pd.read_csv(self.datafile, comment='#', sep=";",
+                              names=["UTCDate", "LocalDate", "Temp", "Volts", "MSAS", "Init/Subs"],
+                              header=None,
+                              parse_dates=["UTCDate", "LocalDate"])
+
         self.df = self.df.round({'MSAS': 2})
 
         with open(self.datafile) as f:
             for line in f:
                 if "Position" in line:
-                    [lat, lon, ele] = line.split(":")[1].split(",")
-                    self.location.lon = lon
-                    self.location.lat = lat
-                    self.location.elevation = int(ele)
+                    try:
+                        [lat, lon, ele] = line.split(":")[1].split(",")
+                        self.location.lon = lon
+                        self.location.lat = lat
+                        self.location.elevation = int(ele)
+                    except ValueError:
+                        self.location.lon = "7.9"
+                        self.location.lat = "53.4"
+                        self.location.elevation = 0
+                if "Location name" in line:
+                        self.location.name = line.split(":")[1].strip()
                 if "#" not in line:
                     break
                 self.header.append(line)
@@ -87,6 +102,14 @@ class Datafile:
         moon.compute(loc)
         return math.degrees(moon.alt)
 
+    def _moonphase(self, x):
+        """ Compute the illumination of the moon."""
+        loc = self.location
+        loc.date = x['UTCDate']
+        moon = ephem.Moon()
+        moon.compute(loc)
+        return moon.moon_phase
+
     def _nightssolarantitransit(self, x):
         """ Compute the local solar antitransit time
             - when the sun is at it's lowest, solar midnight
@@ -107,6 +130,7 @@ class Datafile:
         # Add new columns for the sun and moon altitude
         self.df['sunalt'] = self.df.apply(self._sunalt, 1)
         self.df['moonalt'] = self.df.apply(self._moonalt, 1)
+        self.df['moonphase'] = self.df.apply(self._moonphase, 1)
 
         # Write columns with the datetime string format the file needs to be in
         self.df['OrigUTCDate'] = self.df['UTCDate'].apply(lambda x: x.strftime('%Y-%m-%dT%H:%M:%S.000'))
@@ -130,13 +154,16 @@ class Datafile:
         else:
             return self.sunmoon
 
-    def reduce_midnight(self):
+    def reduce_midnight(self, midnight_only=False):
         """ Select only rows that are between one hour either side of 'antitransit' midnight
             AND where the Sun and Moon altitude criteria are met."""
 
-        if self.sunmoon.empty:
-            self.reduce_dark()
-        df = self.sunmoon
+        if not midnight_only:
+            if self.sunmoon.empty:
+                self.reduce_dark()
+            df = self.sunmoon
+        else:
+            df = self.df.copy()
 
         self.midnight = df.loc[((df['UTCDate'] - df['NightsSolarAntiTransit']) < datetime.timedelta(hours=1)) &
                                ((df['NightsSolarAntiTransit'] - df['UTCDate']) < datetime.timedelta(hours=1))]

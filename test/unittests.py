@@ -1,4 +1,3 @@
-import filecmp
 import os
 import unittest
 
@@ -30,8 +29,8 @@ class DafafileTests(unittest.TestCase):
         SQM.read(os.path.join(path, "ref.dat"))
         SQM.compute()
         SQM.write(os.path.join(path, "result.dat"))
-        self.assertTrue(filecmp.cmp(os.path.join(path, "ref.dat"),
-                                    os.path.join(path, "result.dat")), 'Files differ')
+        self.assertEqual(filecmp(os.path.join(path, "ref.dat"),
+                                    os.path.join(path, "result.dat")), set(), 'Files differ')
 
     def test_writesunmoon(self):
         SQM = obs.Datafile()
@@ -40,8 +39,8 @@ class DafafileTests(unittest.TestCase):
         SQM.compute()
         SQM.reduce_dark()
         SQM.write(os.path.join(path, "sunmoon.dat"))
-        self.assertTrue(filecmp.cmp(os.path.join(path, "sunmoon.dat"),
-                                    os.path.join(path, "sunmoonref.dat")), 'Files differ')
+        self.assertEqual(filecmp(os.path.join(path, "sunmoon.dat"),
+                                    os.path.join(path, "sunmoonref.dat")), set(), 'Files differ')
 
     def test_midnight(self):
         SQM = obs.Datafile()
@@ -50,8 +49,8 @@ class DafafileTests(unittest.TestCase):
         SQM.compute()
         SQM.reduce_midnight()
         SQM.write(os.path.join(path, "midnight.dat"))
-        self.assertTrue(filecmp.cmp(os.path.join(path, "midnight.dat"),
-                                    os.path.join(path, "midnightref.dat")), 'Files differ')
+        self.assertEqual(filecmp(os.path.join(path, "midnight.dat"),
+                                    os.path.join(path, "midnightref.dat")), set(), 'Files differ')
 
     def test_debugcsv(self):
         SQM = obs.Datafile()
@@ -60,9 +59,16 @@ class DafafileTests(unittest.TestCase):
         SQM.compute()
         SQM.reduce_midnight()
         SQM.debug_csv(os.path.join(path, "debugcsv.dat"))
-        self.assertTrue(filecmp.cmp(os.path.join(path, "debugcsv.dat"),
-                                    os.path.join(path, "debugcsvref.dat")), 'Files differ')
+        self.assertEqual(filecmp(os.path.join(path, "debugcsv.dat"),
+                                    os.path.join(path, "debugcsvref.dat")), set(), 'Files differ')
 
+def filecmp(f1, f2):
+    with open(f1, 'r') as fp:
+        l1 = fp.readlines()
+    with open(f2, 'r') as fp:
+        l2 = fp.readlines()
+    print(set(l1) - set(l2))
+    return(set(l1) - set(l2))
 
 if __name__ == '__main__':
     unittest.main()
